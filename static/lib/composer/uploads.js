@@ -6,7 +6,8 @@ define('composer/uploads', [
 	'composer/preview',
 	'composer/categoryList',
 	'translator',
-], function(preview, categoryList, translator) {
+	'settings',
+], function(preview, categoryList, translator, Settings) {
 	var uploads = {
 		inProgress: {}
 	};
@@ -30,7 +31,7 @@ define('composer/uploads', [
 		postContainer.find('#files').on('change', function(e) {
 			var files = (e.target || {}).files || ($(this).val() ? [{name: $(this).val(), type: utils.fileMimeType($(this).val())}] : null);
 			if (files) {
-				uploadContentFiles({files: files, post_uuid: post_uuid, route: '/api/post/upload'});
+				uploadContentFiles({files: files, post_uuid: post_uuid, route: config["composer-qiniu"].qiniuUploadURL});
 			}
 		});
 
@@ -129,7 +130,7 @@ define('composer/uploads', [
 				uploadContentFiles({
 					files: files,
 					post_uuid: post_uuid,
-					route: '/api/post/upload',
+					route: config["composer-qiniu"].qiniuUploadURL,
 					formData: fd
 				});
 			}
@@ -185,7 +186,7 @@ define('composer/uploads', [
 					files: [blob],
 					fileNames: [blobName],
 					post_uuid: post_uuid,
-					route: '/api/post/upload',
+					route: config["composer-qiniu"].qiniuUploadURL,
 					formData: fd
 				});
 
@@ -273,20 +274,37 @@ define('composer/uploads', [
 			}
 
 			uploads.inProgress[post_uuid] = uploads.inProgress[post_uuid] || [];
-			uploads.inProgress[post_uuid].push(1);
 
-			if (params.formData) {
-				params.formData.append('cid', cid);
-			}
+		for (var i = 0; i < files.length; ++i) {
+			uploads.inProgress[post_uuid].push(1);
+			var fd = new FormData()
+			fd.append("file", files[i])
+
+			var key = [createUUID()].concat(files[i].name.split('.').slice(-1)).join('.')
+			fd.append("key", key)
+
+			fd.append("x:filename", filenameMapping[i])
 
 			$(this).ajaxSubmit({
 				headers: {
 					'x-csrf-token': config.csrf_token
 				},
-				resetForm: true,
-				clearForm: true,
-				formData: params.formData,
+				formData: fd,
 				data: { cid: cid },
+				// async: false,
+
+				beforeSubmit: function (arr, $form, options) {
+					$.ajax({
+						url: "/api/qiniu/token",
+						success: function (result) {
+							options.formData.append("token", result.token);
+						},
+						error: function () {
+							app.alertError("获取凭证出错");
+						},
+						async: false,
+					});
+				},
 
 				error: function (xhr) {
 					postContainer.find('[data-action="post"]').prop('disabled', false);
@@ -306,10 +324,8 @@ define('composer/uploads', [
 
 				success: function(uploads) {
 					doneUploading = true;
-					if (uploads && uploads.length) {
-						for (var i=0; i<uploads.length; ++i) {
-							updateTextArea(filenameMapping[i], uploads[i].url, true);
-						}
+					if (uploads && uploads.key) {
+						updateTextArea(uploads["x:filename"] || filenameMapping[i], config['composer-qiniu'].qiniuCDNDomain + '/' +uploads.key, true);
 					}
 					preview.render(postContainer);
 					textarea.focus();
@@ -317,10 +333,15 @@ define('composer/uploads', [
 				},
 
 				complete: function() {
-					uploadForm[0].reset();
 					uploads.inProgress[post_uuid].pop();
+					if (uploads.inProgress[post_uuid].length == 0) {
+						uploadForm[0].reset();
+						$(this).resetForm();
+						$(this).clearForm();
+					}
 				}
 			});
+		}
 
 			return false;
 		});
@@ -369,6 +390,19 @@ define('composer/uploads', [
 		app.alertError(msg);
 	}
 
+	function createUUID() {
+		var s = []
+		var hexDigits = "0123456789abcdef";
+		for (var i = 0; i < 36; i++) {
+			s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+		}
+		s[14] = "4";
+		s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1);
+		s[8] = s[13] = s[18] = s[23] = "-";
+
+		var uuid = s.join("");
+		return uuid;
+	}
+
 	return uploads;
 });
-

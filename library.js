@@ -15,6 +15,7 @@ var socketMethods = require('./websockets');
 var async = module.parent.require('async');
 var nconf = module.parent.require('nconf');
 var validator = require('validator');
+var qiniu = module.parent.require('qiniu');
 
 var plugin = module.exports;
 
@@ -24,28 +25,41 @@ plugin.init = function(data, callback) {
 	var controllers = require('./controllers');
 	SocketPlugins.composer = socketMethods;
 
-	data.router.get('/admin/plugins/composer-default', data.middleware.admin.buildHeader, controllers.renderAdminPage);
-	data.router.get('/api/admin/plugins/composer-default', controllers.renderAdminPage);
+	data.router.get('/admin/plugins/composer-qiniu', data.middleware.admin.buildHeader, controllers.renderAdminPage);
+	data.router.get('/api/admin/plugins/composer-qiniu', controllers.renderAdminPage);
+	data.router.get('/api/qiniu/token', function (req, res, next) {
+		meta.settings.get("composer-qiniu", function (err, settings) {
+			var mac = new qiniu.auth.digest.Mac(settings.qiniuAccessKey, settings.qiniuSecretKey)
+			var options = {
+				scope: settings.qiniuBucket
+			};
+			var putPolicy = new qiniu.rs.PutPolicy(options);
+
+			res.json({
+				"token": putPolicy.uploadToken(mac)
+			});
+		})
+	});
 
 	callback();
 };
 
 plugin.appendConfig = function(config, callback) {
-	meta.settings.get('composer-default', function(err, settings) {
+	meta.settings.get('composer-qiniu', function(err, settings) {
 		if (err) {
 			return callback(null, config);
 		}
 
-		config['composer-default'] = settings;
+		config['composer-qiniu'] = settings;
 		callback(null, config);
 	});
 };
 
 plugin.addAdminNavigation = function(header, callback) {
 	header.plugins.push({
-		route: '/plugins/composer-default',
+		route: '/plugins/composer-qiniu',
 		icon: 'fa-edit',
-		name: 'Composer (Default)'
+		name: 'Composer (Qiniu)'
 	});
 
 	callback(null, header);
