@@ -26,11 +26,11 @@
 			</div>
 			<div class="form-group">
 				<label>Qiniu CDN Domain</label>
-				<input name="qiniuCDNDomain" type="text" class="form-control" placeholder="Enter Qiniu CND Domain">
+				<input name="qiniuCDNDomain" type="text" class="form-control" placeholder="http://qiniucdndomain.example">
 			</div>
 			<div class="form-group">
 				<label>Qiniu Upload URL</label>
-				<input name="qiniuUploadURL" type="text" class="form-control" placeholder="Enter Qiniu Upload URL">
+				<input name="qiniuUploadURL" type="text" class="form-control" placeholder="https://upload-z2.qiniup.com（请根据 bucket 所在地填写）">
 			</div>
 		</div>
 	</div>
