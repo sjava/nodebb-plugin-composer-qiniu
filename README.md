@@ -15,4 +15,4 @@ nodebb 上传文件到七牛的插件，之前有一个 [nodebb-plugin-qiniu-img
 ![Mobile Composer](screenshots/mobile.png?raw=true)
 
 ### Admin Setting
-![Admin Setting](Screenshots/admin.png?raw=true)
+![Admin Setting](screenshots/admin.png?raw=true)
