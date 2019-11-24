@@ -32,6 +32,14 @@
 				<label>Qiniu Upload URL</label>
 				<input name="qiniuUploadURL" type="text" class="form-control" placeholder="https://upload-z2.qiniup.com（请根据 bucket 所在地填写）">
 			</div>
+      <div class="form-group">
+      <label>Qiniu Water Style</label>
+      <input name="qiniuWaterStyle" type="text" class="form-control" placeholder="上传图片水印样式">
+      </div>
+      <div class="form-group">
+      <label>Qiniu Scale Style</label>
+      <input name="qiniuScaleStyle" type="text" class="form-control" placeholder="上传后压缩图片的方式">
+      </div>
 		</div>
 	</div>
 </form>
